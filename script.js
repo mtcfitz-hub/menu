@@ -1,4 +1,21 @@
 // ═══════════════════════════════════
+// AUTO DATE
+// ═══════════════════════════════════
+(function () {
+  const el = document.querySelector('.menu-date');
+  if (!el) return;
+  const now = new Date();
+  if (now.getDay() === 0) now.setDate(now.getDate() + 1);
+  const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
+  const d = now.getDate();
+  const suffix = d === 1 || d === 21 || d === 31 ? 'st'
+               : d === 2 || d === 22 ? 'nd'
+               : d === 3 || d === 23 ? 'rd' : 'th';
+  const month = now.toLocaleDateString('en-GB', { month: 'long' });
+  el.textContent = `${day} ${d}${suffix} ${month}`;
+})();
+
+// ═══════════════════════════════════
 // PANINI TOGGLE
 // ═══════════════════════════════════
 let paniniVisible = false;
@@ -101,6 +118,19 @@ const FOOD_DB = [
   { name:"Vegan Spread Portion", kcal:"31.5 kcal", allergens:"", price:"£0.25" },
 ];
 
+// Load saved food DB from localStorage (full edited DB or legacy custom items)
+try {
+  const fullDB = localStorage.getItem('savedFoodDB');
+  if (fullDB) {
+    const parsed = JSON.parse(fullDB);
+    FOOD_DB.length = 0;
+    parsed.forEach(item => FOOD_DB.push(item));
+  } else {
+    const custom = JSON.parse(localStorage.getItem('customFoodDB') || '[]');
+    custom.forEach(item => FOOD_DB.push(item));
+  }
+} catch (e) { /* ignore corrupt data */ }
+
 
 // ═══════════════════════════════════
 // AUTOCOMPLETE ENGINE
@@ -172,6 +202,8 @@ function selectItem(index) {
   const isFeatured = activeField.classList.contains('f-name');
   const isItemName = activeField.classList.contains('item-name');
 
+  activeField.setAttribute('data-ac-matched', 'true');
+
   if (isFeatured) {
     const card = activeField.closest('.featured-card');
     if (card) {
@@ -212,6 +244,7 @@ document.addEventListener('input', (e) => {
   const field = e.target.closest('[data-ac="food"]');
   if (!field) return;
 
+  field.removeAttribute('data-ac-matched');
   activeField = field;
   const query = getTextContent(field);
   const results = searchFood(query);
@@ -277,6 +310,180 @@ document.addEventListener('focusout', (e) => {
 
 
 // ═══════════════════════════════════
+// UNDO STACK
+// ═══════════════════════════════════
+const undoStack = [];
+const MAX_UNDO = 10;
+const menuContent = document.querySelector('.menu-content');
+const undoBtn = document.getElementById('undoBtn');
+
+function saveUndoState() {
+  undoStack.push(menuContent.innerHTML);
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  updateUndoBtn();
+}
+
+function undo() {
+  if (undoStack.length === 0) return;
+  menuContent.innerHTML = undoStack.pop();
+  updateUndoBtn();
+}
+
+function updateUndoBtn() {
+  undoBtn.disabled = undoStack.length === 0;
+}
+
+
+// ═══════════════════════════════════
+// ADD / DELETE ROW BUTTONS
+// ═══════════════════════════════════
+function attachRowButtons(item) {
+  if (!item.querySelector('.del-row-btn')) {
+    const del = document.createElement('button');
+    del.className = 'del-row-btn';
+    del.setAttribute('aria-label', 'Delete row');
+    del.textContent = '−';
+    item.prepend(del);
+  }
+  if (!item.querySelector('.add-row-btn')) {
+    const add = document.createElement('button');
+    add.className = 'add-row-btn';
+    add.setAttribute('aria-label', 'Duplicate row');
+    add.textContent = '+';
+    item.appendChild(add);
+  }
+}
+
+document.querySelectorAll('.menu-item').forEach(attachRowButtons);
+
+// Add row (duplicate)
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.add-row-btn');
+  if (!btn) return;
+  const item = btn.closest('.menu-item');
+  if (!item) return;
+
+  saveUndoState();
+  const clone = item.cloneNode(true);
+  item.after(clone);
+  const firstEditable = clone.querySelector('[contenteditable]');
+  if (firstEditable) firstEditable.focus();
+});
+
+// Delete row
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.del-row-btn');
+  if (!btn) return;
+  const item = btn.closest('.menu-item');
+  if (!item) return;
+
+  saveUndoState();
+  item.remove();
+});
+
+
+// ═══════════════════════════════════
+// FOOD EDITOR MODAL
+// ═══════════════════════════════════
+(function () {
+  // Build modal DOM
+  const overlay = document.createElement('div');
+  overlay.className = 'food-editor-overlay';
+  overlay.innerHTML = `
+    <div class="food-editor">
+      <div class="food-editor-header">
+        <h2>Saved Food Items</h2>
+        <button class="fe-close" onclick="closeFoodEditor()">&times;</button>
+      </div>
+      <div class="food-editor-body">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Calories</th><th>Allergens</th><th>Price</th><th></th></tr>
+          </thead>
+          <tbody id="feTableBody"></tbody>
+        </table>
+      </div>
+      <div class="food-editor-footer">
+        <button class="fe-add-btn" onclick="feAddRow()">+ Add Item</button>
+        <button class="fe-save-btn" onclick="feSave()">Save Changes</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  // Close on overlay click
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeFoodEditor();
+  });
+})();
+
+function openFoodEditor() {
+  const tbody = document.getElementById('feTableBody');
+  tbody.innerHTML = '';
+  FOOD_DB.forEach((item, i) => {
+    tbody.appendChild(feCreateRow(item));
+  });
+  document.querySelector('.food-editor-overlay').classList.add('open');
+}
+
+function closeFoodEditor() {
+  document.querySelector('.food-editor-overlay').classList.remove('open');
+}
+
+function feCreateRow(item) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${(item.name || '').replace(/"/g, '&quot;')}" data-field="name"></td>
+    <td><input type="text" value="${(item.kcal || '').replace(/"/g, '&quot;')}" data-field="kcal"></td>
+    <td><input type="text" value="${(item.allergens || '').replace(/"/g, '&quot;')}" data-field="allergens"></td>
+    <td><input type="text" value="${(item.price || '').replace(/"/g, '&quot;')}" data-field="price"></td>
+    <td><button class="fe-del-btn" onclick="this.closest('tr').remove()" title="Delete">&times;</button></td>`;
+  return tr;
+}
+
+function feAddRow() {
+  const tbody = document.getElementById('feTableBody');
+  const tr = feCreateRow({ name: '', kcal: '', allergens: '', price: '' });
+  tbody.appendChild(tr);
+  tr.querySelector('input').focus();
+  tr.scrollIntoView({ block: 'nearest' });
+}
+
+function feSave() {
+  const rows = document.querySelectorAll('#feTableBody tr');
+  const newDB = [];
+  rows.forEach(row => {
+    const name = row.querySelector('[data-field="name"]').value.trim();
+    if (!name) return;
+    newDB.push({
+      name,
+      kcal: row.querySelector('[data-field="kcal"]').value.trim(),
+      allergens: row.querySelector('[data-field="allergens"]').value.trim(),
+      price: row.querySelector('[data-field="price"]').value.trim(),
+    });
+  });
+
+  // Replace FOOD_DB contents
+  FOOD_DB.length = 0;
+  newDB.forEach(item => FOOD_DB.push(item));
+
+  // Persist to localStorage
+  localStorage.setItem('savedFoodDB', JSON.stringify(newDB));
+
+  closeFoodEditor();
+}
+
+
+// ═══════════════════════════════════
+// RESTART (reload page to defaults)
+// ═══════════════════════════════════
+function restartPage() {
+  if (confirm('Reset the menu to its default state?')) {
+    window.location.reload();
+  }
+}
+
+
+// ═══════════════════════════════════
 // PDF DOWNLOAD (html2canvas + jsPDF)
 // ═══════════════════════════════════
 async function downloadPDF() {
@@ -327,7 +534,48 @@ async function downloadPDF() {
     console.error('PDF generation failed:', err);
     alert('PDF generation failed. Please try again.');
   } finally {
+    menuPage.classList.remove('capturing');
     btn.innerHTML = origHTML;
     btn.disabled = false;
   }
+
+  promptToSaveCustomItems();
+}
+
+function promptToSaveCustomItems() {
+  const existingNames = new Set(FOOD_DB.map(i => i.name.toLowerCase()));
+  const newItems = [];
+
+  document.querySelectorAll('[data-ac="food"]:not([data-ac-matched])').forEach(field => {
+    const name = getTextContent(field).trim();
+    if (!name || existingNames.has(name.toLowerCase())) return;
+
+    // Extract kcal and price from the row
+    const row = field.closest('.menu-item') || field.closest('.featured-card');
+    if (!row) return;
+
+    const kcal = (row.querySelector('.item-kcal, .f-meta') || {}).textContent || '';
+    const price = (row.querySelector('.item-price, .f-price') || {}).textContent || '';
+    const allergensEl = field.querySelector('.allergens');
+    const allergens = allergensEl ? allergensEl.textContent.replace(/^Contains\s*/i, '') : '';
+
+    newItems.push({ name, kcal: kcal.trim(), allergens: allergens.trim(), price: price.trim() });
+    existingNames.add(name.toLowerCase());
+  });
+
+  if (newItems.length === 0) return;
+
+  const list = newItems.map(i => '  - ' + i.name).join('\n');
+  if (!confirm('Save these new items for future menus?\n\n' + list)) return;
+
+  newItems.forEach(item => FOOD_DB.push(item));
+  localStorage.setItem('savedFoodDB', JSON.stringify(FOOD_DB));
+
+  // Mark them as matched now that they're saved
+  document.querySelectorAll('[data-ac="food"]:not([data-ac-matched])').forEach(field => {
+    const name = getTextContent(field).trim().toLowerCase();
+    if (newItems.some(i => i.name.toLowerCase() === name)) {
+      field.setAttribute('data-ac-matched', 'true');
+    }
+  });
 }
