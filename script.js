@@ -34,14 +34,14 @@ function togglePanini() {
     btn.textContent = '− Paninis';
     paniniCols.forEach(el => el.style.display = '');
     paniniInfo.style.display = '';
-    title.textContent = 'Toasties & Paninis';
+    title.textContent = 'Sandwiches, Toasties & Paninis';
   } else {
     section.classList.remove('has-panini');
     btn.classList.remove('active');
     btn.textContent = '+ Paninis';
     paniniCols.forEach(el => el.style.display = 'none');
     paniniInfo.style.display = 'none';
-    title.textContent = 'Toasties';
+    title.textContent = 'Sandwiches & Toasties';
   }
 }
 
@@ -62,6 +62,8 @@ const FOOD_DB = [
   { name:"Cream of Parsnip Soup", kcal:"129 kcal", allergens:"Milk", price:"£1.80" },
   { name:"Garden Pea & Vegetable Soup", kcal:"88 kcal", allergens:"", price:"£1.80" },
   { name:"Leek & Potato Soup", kcal:"94 kcal", allergens:"", price:"£1.80" },
+  { name:"Cream of Cauliflower Soup", kcal:"94 kcal", allergens:"", price:"£1.80" },
+  { name:"Cream of Broccoli Soup", kcal:"110 kcal", allergens:"", price:"£1.80" },
 
   // Specials
   { name:"Tricolour Fusilli with Steak Mince Bolognese", kcal:"617 kcal", allergens:"Wheat", price:"£4.95" },
@@ -118,13 +120,16 @@ const FOOD_DB = [
   { name:"Vegan Spread Portion", kcal:"31.5 kcal", allergens:"", price:"£0.25" },
 ];
 
-// Load saved food DB from localStorage (full edited DB or legacy custom items)
+// Load saved food DB from localStorage, merging in any new hardcoded items
 try {
   const fullDB = localStorage.getItem('savedFoodDB');
   if (fullDB) {
     const parsed = JSON.parse(fullDB);
+    const savedNames = new Set(parsed.map(i => i.name.toLowerCase()));
+    const newDefaults = FOOD_DB.filter(i => !savedNames.has(i.name.toLowerCase()));
     FOOD_DB.length = 0;
     parsed.forEach(item => FOOD_DB.push(item));
+    newDefaults.forEach(item => FOOD_DB.push(item));
   } else {
     const custom = JSON.parse(localStorage.getItem('customFoodDB') || '[]');
     custom.forEach(item => FOOD_DB.push(item));
@@ -355,6 +360,53 @@ function attachRowButtons(item) {
 }
 
 document.querySelectorAll('.menu-item').forEach(attachRowButtons);
+
+// ── Featured card delete buttons ──
+function attachCardDeleteBtn(card) {
+  if (card.querySelector('.del-card-btn')) return;
+  const del = document.createElement('button');
+  del.className = 'del-card-btn';
+  del.setAttribute('aria-label', 'Delete item');
+  del.textContent = '×';
+  card.appendChild(del);
+}
+
+document.querySelectorAll('.featured-card').forEach(attachCardDeleteBtn);
+
+// Delete featured card
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.del-card-btn');
+  if (!btn) return;
+  const card = btn.closest('.featured-card');
+  if (!card) return;
+
+  saveUndoState();
+  card.remove();
+});
+
+// ── Track empty f-extras fields ──
+function checkExtrasEmpty(el) {
+  const text = el.textContent.trim();
+  el.classList.toggle('is-empty', text.length === 0);
+}
+
+document.querySelectorAll('.f-extras').forEach(checkExtrasEmpty);
+
+document.addEventListener('input', (e) => {
+  const extras = e.target.closest('.f-extras');
+  if (extras) checkExtrasEmpty(extras);
+});
+
+document.addEventListener('focusout', (e) => {
+  const extras = e.target.closest('.f-extras');
+  if (extras) {
+    // Clean up stray <br> tags when empty
+    if (extras.textContent.trim().length === 0) {
+      extras.innerHTML = '';
+    }
+    checkExtrasEmpty(extras);
+  }
+});
 
 // Add row (duplicate)
 document.addEventListener('click', (e) => {
