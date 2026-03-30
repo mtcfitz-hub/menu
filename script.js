@@ -620,6 +620,7 @@ async function downloadPDF() {
 
     const dateText = document.querySelector('.menu-date').textContent.trim().replace(/[\/\\:*?"<>|]/g, '') || 'menu';
     pdf.save('JDR ' + dateText + '.pdf');
+    showJudyOverlay();
   } catch (err) {
     console.error('PDF generation failed:', err);
     alert('PDF generation failed. Please try again.');
@@ -630,6 +631,20 @@ async function downloadPDF() {
   }
 
   await promptToSaveCustomItems();
+}
+
+function showJudyOverlay() {
+  const overlay = document.createElement('div');
+  overlay.className = 'judy-overlay';
+  overlay.innerHTML = `
+    <div class="judy-content">
+      <img src="judy.gif" alt="Judy">
+      <button class="judy-close" onclick="this.closest('.judy-overlay').remove()">&times;</button>
+    </div>`;
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  document.body.appendChild(overlay);
 }
 
 async function promptToSaveCustomItems() {
