@@ -120,21 +120,41 @@ const FOOD_DB = [
   { name:"Vegan Spread Portion", kcal:"31.5 kcal", allergens:"", price:"£0.25" },
 ];
 
-// Load saved food DB from localStorage, merging in any new hardcoded items
-try {
-  const fullDB = localStorage.getItem('savedFoodDB');
-  if (fullDB) {
-    const parsed = JSON.parse(fullDB);
-    const savedNames = new Set(parsed.map(i => i.name.toLowerCase()));
-    const newDefaults = FOOD_DB.filter(i => !savedNames.has(i.name.toLowerCase()));
-    FOOD_DB.length = 0;
-    parsed.forEach(item => FOOD_DB.push(item));
-    newDefaults.forEach(item => FOOD_DB.push(item));
-  } else {
-    const custom = JSON.parse(localStorage.getItem('customFoodDB') || '[]');
-    custom.forEach(item => FOOD_DB.push(item));
+// Save food DB to Vercel KV
+async function saveFoodDBToKV(items) {
+  const res = await fetch('/api/food-db', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(items),
+  });
+  if (!res.ok) throw new Error('Save failed: ' + res.status);
+  return res.json();
+}
+
+// Load food DB from Vercel KV, merging in any new hardcoded items
+async function initFoodDB() {
+  try {
+    const res = await fetch('/api/food-db');
+    if (!res.ok) throw new Error('API error: ' + res.status);
+    const saved = await res.json();
+
+    if (saved.length > 0) {
+      const savedNames = new Set(saved.map(i => i.name.toLowerCase()));
+      const newDefaults = FOOD_DB.filter(i => !savedNames.has(i.name.toLowerCase()));
+      FOOD_DB.length = 0;
+      saved.forEach(item => FOOD_DB.push(item));
+      newDefaults.forEach(item => FOOD_DB.push(item));
+      if (newDefaults.length > 0) await saveFoodDBToKV(FOOD_DB);
+    } else {
+      // First run — seed KV with hardcoded defaults
+      await saveFoodDBToKV(FOOD_DB);
+    }
+  } catch (e) {
+    console.error('Failed to load food DB from KV:', e);
   }
-} catch (e) { /* ignore corrupt data */ }
+}
+
+initFoodDB();
 
 
 // ═══════════════════════════════════
@@ -500,7 +520,7 @@ function feAddRow() {
   tr.scrollIntoView({ block: 'nearest' });
 }
 
-function feSave() {
+async function feSave() {
   const rows = document.querySelectorAll('#feTableBody tr');
   const newDB = [];
   rows.forEach(row => {
@@ -518,8 +538,13 @@ function feSave() {
   FOOD_DB.length = 0;
   newDB.forEach(item => FOOD_DB.push(item));
 
-  // Persist to localStorage
-  localStorage.setItem('savedFoodDB', JSON.stringify(newDB));
+  // Persist to Vercel KV
+  try {
+    await saveFoodDBToKV(newDB);
+  } catch (e) {
+    console.error('Failed to save to KV:', e);
+    alert('Failed to save food database. Check your connection.');
+  }
 
   closeFoodEditor();
 }
@@ -591,10 +616,10 @@ async function downloadPDF() {
     btn.disabled = false;
   }
 
-  promptToSaveCustomItems();
+  await promptToSaveCustomItems();
 }
 
-function promptToSaveCustomItems() {
+async function promptToSaveCustomItems() {
   const existingNames = new Set(FOOD_DB.map(i => i.name.toLowerCase()));
   const newItems = [];
 
@@ -621,7 +646,13 @@ function promptToSaveCustomItems() {
   if (!confirm('Save these new items for future menus?\n\n' + list)) return;
 
   newItems.forEach(item => FOOD_DB.push(item));
-  localStorage.setItem('savedFoodDB', JSON.stringify(FOOD_DB));
+
+  try {
+    await saveFoodDBToKV(FOOD_DB);
+  } catch (e) {
+    console.error('Failed to save new items to KV:', e);
+    alert('Failed to save new food items. Check your connection.');
+  }
 
   // Mark them as matched now that they're saved
   document.querySelectorAll('[data-ac="food"]:not([data-ac-matched])').forEach(field => {
