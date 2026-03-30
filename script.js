@@ -16,6 +16,19 @@
 })();
 
 // ═══════════════════════════════════
+// AUTO-SELECT FOOD NAME ON CLICK
+// ═══════════════════════════════════
+document.addEventListener('focusin', (e) => {
+  const field = e.target.closest('.f-name, .item-name');
+  if (!field) return;
+  const sel = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(field);
+  sel.removeAllRanges();
+  sel.addRange(range);
+});
+
+// ═══════════════════════════════════
 // PANINI TOGGLE
 // ═══════════════════════════════════
 let paniniVisible = false;
