@@ -414,6 +414,7 @@
   .menu-page {
     background: var(--white);
     width: var(--page-width);
+    min-width: var(--page-width);
     max-width: 100%;
     position: relative;
     box-shadow:
