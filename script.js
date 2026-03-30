@@ -606,7 +606,7 @@ async function downloadPDF() {
     pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMM, pageHeightMM, undefined, 'FAST');
 
     const dateText = document.querySelector('.menu-date').textContent.trim().replace(/[\/\\:*?"<>|]/g, '') || 'menu';
-    pdf.save(dateText + '.pdf');
+    pdf.save('JDR ' + dateText + '.pdf');
   } catch (err) {
     console.error('PDF generation failed:', err);
     alert('PDF generation failed. Please try again.');
