@@ -19,7 +19,7 @@
 // AUTO-SELECT FOOD NAME ON CLICK
 // ═══════════════════════════════════
 document.addEventListener('focusin', (e) => {
-  const field = e.target.closest('.f-name, .item-name');
+  const field = e.target.closest('[contenteditable="true"]');
   if (!field) return;
   const sel = window.getSelection();
   const range = document.createRange();
@@ -31,7 +31,7 @@ document.addEventListener('focusin', (e) => {
 // ═══════════════════════════════════
 // PANINI TOGGLE
 // ═══════════════════════════════════
-let paniniVisible = false;
+let paniniVisible = true;
 
 function togglePanini() {
   paniniVisible = !paniniVisible;

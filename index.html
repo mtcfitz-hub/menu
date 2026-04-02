@@ -24,7 +24,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     Edit Saved Items
   </button>
-  <button class="btn-toggle-panini" onclick="togglePanini()">+ Paninis</button>
+  <button class="btn-toggle-panini active" onclick="togglePanini()">− Paninis</button>
   <button class="btn-download" onclick="downloadPDF()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Save as PDF
@@ -107,48 +107,48 @@
     </div>
 
     <!-- SANDWICHES & TOASTIES -->
-    <div class="menu-section" id="toastieSection">
+    <div class="menu-section has-panini" id="toastieSection">
       <div class="section-header">
         <div class="section-line"></div>
-        <div class="section-tag" contenteditable="true" id="toastieTitle">Sandwiches &amp; Toasties</div>
+        <div class="section-tag" contenteditable="true" id="toastieTitle">Sandwiches, Toasties &amp; Paninis</div>
         <div class="section-line"></div>
       </div>
       <div class="section-subtitle" contenteditable="true">White bread (Wheat) 117 kcals per slice · Brown bread (Wheat &amp; Soya) 104 kcals per slice</div>
-      <div class="section-subtitle panini-info" style="display:none;" contenteditable="true">Panini 343 kcals per panini · Wheat, Milk, Soya</div>
+      <div class="section-subtitle panini-info" contenteditable="true">Panini 343 kcals per panini · Wheat, Milk, Soya</div>
       <div class="menu-item">
         <div class="item-name" contenteditable="true" data-ac="food">Cheese <span class="allergens">Milk</span></div>
         <div class="item-kcal" contenteditable="true">w/b 364 · b/b 354</div>
-        <div class="item-kcal panini-col" style="display:none;" contenteditable="true">· pan 468</div>
+        <div class="item-kcal panini-col" contenteditable="true">· pan 468</div>
         <div class="item-price" contenteditable="true">£3.05</div>
-        <div class="item-price panini-col" style="display:none;" contenteditable="true">£4.05</div>
+        <div class="item-price panini-col" contenteditable="true">£4.05</div>
       </div>
       <div class="menu-item">
         <div class="item-name" contenteditable="true" data-ac="food">Ham</div>
         <div class="item-kcal" contenteditable="true">w/b 369 · b/b 359</div>
-        <div class="item-kcal panini-col" style="display:none;" contenteditable="true">· pan 505</div>
+        <div class="item-kcal panini-col" contenteditable="true">· pan 505</div>
         <div class="item-price" contenteditable="true">£3.05</div>
-        <div class="item-price panini-col" style="display:none;" contenteditable="true">£4.05</div>
+        <div class="item-price panini-col" contenteditable="true">£4.05</div>
       </div>
       <div class="menu-item">
         <div class="item-name" contenteditable="true" data-ac="food">Cheese &amp; Ham <span class="allergens">Milk</span></div>
         <div class="item-kcal" contenteditable="true">w/b 402 · b/b 392</div>
-        <div class="item-kcal panini-col" style="display:none;" contenteditable="true">· pan 505</div>
+        <div class="item-kcal panini-col" contenteditable="true">· pan 505</div>
         <div class="item-price" contenteditable="true">£3.05</div>
-        <div class="item-price panini-col" style="display:none;" contenteditable="true">£4.05</div>
+        <div class="item-price panini-col" contenteditable="true">£4.05</div>
       </div>
       <div class="menu-item">
         <div class="item-name" contenteditable="true" data-ac="food">Cheese &amp; Tomato <span class="allergens">Milk</span></div>
         <div class="item-kcal" contenteditable="true">w/b 377 · b/b 368</div>
-        <div class="item-kcal panini-col" style="display:none;" contenteditable="true">· pan 482</div>
+        <div class="item-kcal panini-col" contenteditable="true">· pan 482</div>
         <div class="item-price" contenteditable="true">£3.05</div>
-        <div class="item-price panini-col" style="display:none;" contenteditable="true">£4.05</div>
+        <div class="item-price panini-col" contenteditable="true">£4.05</div>
       </div>
       <div class="menu-item">
         <div class="item-name" contenteditable="true" data-ac="food">Tuna Mayo <span class="allergens">Fish, Egg</span></div>
         <div class="item-kcal" contenteditable="true">w/b 358 · b/b 348</div>
-        <div class="item-kcal panini-col" style="display:none;" contenteditable="true">· pan 482</div>
+        <div class="item-kcal panini-col" contenteditable="true">· pan 482</div>
         <div class="item-price" contenteditable="true">£3.05</div>
-        <div class="item-price panini-col" style="display:none;" contenteditable="true">£4.05</div>
+        <div class="item-price panini-col" contenteditable="true">£4.05</div>
       </div>
     </div>
 
