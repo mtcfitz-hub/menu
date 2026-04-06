@@ -591,6 +591,42 @@ async function downloadPDF() {
     // html2canvas mishandles the ::before texture overlay — hide it during capture
     menuPage.classList.add('capturing');
 
+    // html2canvas can't render CSS-transformed SVGs — rasterise to a rotated <img>
+    const brOrnament = menuPage.querySelector('.corner-ornament.bottom-right');
+    let brImg = null;
+    if (brOrnament) {
+      // Bake the 180° rotation into the SVG via a group transform
+      const svgClone = brOrnament.cloneNode(true);
+      const vb = svgClone.getAttribute('viewBox');
+      if (vb) {
+        const [, , w, h] = vb.split(' ').map(Number);
+        const g = svgClone.querySelector('g');
+        if (g) g.setAttribute('transform', `rotate(180 ${w/2} ${h/2})`);
+      }
+      const svgData = new XMLSerializer().serializeToString(svgClone);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      // Rasterise SVG to a canvas to avoid html2canvas transform issues
+      const tmpImg = new Image();
+      tmpImg.src = url;
+      await new Promise(r => { tmpImg.onload = r; });
+      const offscreen = document.createElement('canvas');
+      offscreen.width = tmpImg.naturalWidth * 2;
+      offscreen.height = tmpImg.naturalHeight * 2;
+      const ctx = offscreen.getContext('2d');
+      ctx.drawImage(tmpImg, 0, 0, offscreen.width, offscreen.height);
+      URL.revokeObjectURL(url);
+
+      brImg = document.createElement('img');
+      brImg.src = offscreen.toDataURL('image/png');
+      brImg.className = 'corner-ornament bottom-right';
+      brImg.style.transform = 'none';
+      await new Promise(r => { brImg.onload = r; });
+      brOrnament.style.display = 'none';
+      menuPage.appendChild(brImg);
+    }
+
     const canvas = await html2canvas(menuPage, {
       scale: 2,
       useCORS: true,
@@ -601,22 +637,33 @@ async function downloadPDF() {
 
     menuPage.classList.remove('capturing');
 
+    // Restore bottom-right ornament
+    if (brOrnament) {
+      brOrnament.style.display = '';
+      if (brImg) brImg.remove();
+    }
+
     const imgData = canvas.toDataURL('image/jpeg', 0.92);
     const { jsPDF } = window.jspdf;
 
-    // Size the PDF to match the menu aspect ratio
+    // Size the PDF to match the menu aspect ratio, with margin
+    const marginMM = 8;
     const pageWidthMM = 210; // A4 width
     const imgAspect = canvas.height / canvas.width;
     const pageHeightMM = pageWidthMM * imgAspect;
 
     const pdf = new jsPDF({
-      orientation: pageHeightMM > pageWidthMM ? 'portrait' : 'landscape',
+      orientation: (pageHeightMM + marginMM * 2) > (pageWidthMM + marginMM * 2) ? 'portrait' : 'landscape',
       unit: 'mm',
-      format: [pageWidthMM, pageHeightMM],
+      format: [pageWidthMM + marginMM * 2, pageHeightMM + marginMM * 2],
       compress: true,
     });
 
-    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMM, pageHeightMM, undefined, 'FAST');
+    // Fill background to match menu colour
+    pdf.setFillColor(250, 248, 244);
+    pdf.rect(0, 0, pageWidthMM + marginMM * 2, pageHeightMM + marginMM * 2, 'F');
+
+    pdf.addImage(imgData, 'JPEG', marginMM, marginMM, pageWidthMM, pageHeightMM, undefined, 'FAST');
 
     const dateText = document.querySelector('.menu-date').textContent.trim().replace(/[\/\\:*?"<>|]/g, '') || 'menu';
     pdf.save('JDR ' + dateText + '.pdf');
