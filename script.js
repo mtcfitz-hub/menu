@@ -647,23 +647,25 @@ async function downloadPDF() {
     const { jsPDF } = window.jspdf;
 
     // Size the PDF to match the menu aspect ratio, with margin
-    const marginMM = 8;
+    const mTop = 4, mRight = 8, mBottom = 8, mLeft = 4;
     const pageWidthMM = 210; // A4 width
     const imgAspect = canvas.height / canvas.width;
     const pageHeightMM = pageWidthMM * imgAspect;
+    const pdfW = pageWidthMM + mLeft + mRight;
+    const pdfH = pageHeightMM + mTop + mBottom;
 
     const pdf = new jsPDF({
-      orientation: (pageHeightMM + marginMM * 2) > (pageWidthMM + marginMM * 2) ? 'portrait' : 'landscape',
+      orientation: pdfH > pdfW ? 'portrait' : 'landscape',
       unit: 'mm',
-      format: [pageWidthMM + marginMM * 2, pageHeightMM + marginMM * 2],
+      format: [pdfW, pdfH],
       compress: true,
     });
 
     // Fill background to match menu colour
     pdf.setFillColor(250, 248, 244);
-    pdf.rect(0, 0, pageWidthMM + marginMM * 2, pageHeightMM + marginMM * 2, 'F');
+    pdf.rect(0, 0, pdfW, pdfH, 'F');
 
-    pdf.addImage(imgData, 'JPEG', marginMM, marginMM, pageWidthMM, pageHeightMM, undefined, 'FAST');
+    pdf.addImage(imgData, 'JPEG', mLeft, mTop, pageWidthMM, pageHeightMM, undefined, 'FAST');
 
     const dateText = document.querySelector('.menu-date').textContent.trim().replace(/[\/\\:*?"<>|]/g, '') || 'menu';
     pdf.save('JDR ' + dateText + '.pdf');
